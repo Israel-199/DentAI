@@ -8,21 +8,26 @@ export async function syncUser() {
     const user = await currentUser();
     if (!user) return;
 
-    const existingUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
+    // check if user already exists
+    let existingUser = await prisma.user.findUnique({
+      where: { clerkId: user.id },
+    });
     if (existingUser) return existingUser;
 
-    const dbUser = await prisma.user.create({
+    // create new user
+    existingUser = await prisma.user.create({
       data: {
         clerkId: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.emailAddresses[0].emailAddress,
-        phone: user.phoneNumbers[0]?.phoneNumber,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        email: user.emailAddresses?.[0]?.emailAddress ?? "",
+        phone: user.phoneNumbers?.[0]?.phoneNumber ?? undefined,
       },
     });
 
-    return dbUser;
+    return existingUser;
   } catch (error) {
-    console.log("Error in syncUser server action", error);
+    console.error("Error in syncUser server action:", error);
+    throw error; // re-throw so calling code can handle it if needed
   }
 }
